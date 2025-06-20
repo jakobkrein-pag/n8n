@@ -153,6 +153,31 @@ describe('DbConnectionOptions', () => {
 
 				expect(result).toMatchObject({ ssl });
 			});
+
+			it('should return password authentication overrides by default', async () => {
+				const result = await dbConnectionOptions.getPostgresOverrides();
+
+				expect(result).toEqual({
+					database: 'test_db',
+					host: 'localhost',
+					port: 5432,
+					username: 'postgres',
+					password: 'password',
+				});
+			});
+
+			it('should detect Azure authentication is disabled by default', () => {
+				// Using bracket notation to access private method for testing
+				const isAzureEnabled = (dbConnectionOptions as any).isAzureAuthEnabled();
+				expect(isAzureEnabled).toBe(false);
+			});
+
+			it('should detect Azure authentication when enabled', () => {
+				dbConfig.postgresdb.authType = 'azure_entra_id';
+
+				const isAzureEnabled = (dbConnectionOptions as any).isAzureAuthEnabled();
+				expect(isAzureEnabled).toBe(true);
+			});
 		});
 
 		describe('for MySQL / MariaDB', () => {

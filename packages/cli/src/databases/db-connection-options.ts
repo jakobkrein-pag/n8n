@@ -18,6 +18,8 @@ import type { TlsOptions } from 'tls';
 
 import { ModuleRegistry } from '@/modules/module-registry';
 
+import { AzureTokenService } from './azure-token.service';
+
 @Service()
 export class DbConnectionOptions {
 	constructor(
@@ -33,6 +35,43 @@ export class DbConnectionOptions {
 			host: dbConfig.host,
 			port: dbConfig.port,
 			username: dbConfig.user,
+			password: dbConfig.password,
+		};
+	}
+
+	private isAzureAuthEnabled(): boolean {
+		return this.config.postgresdb.authType === 'azure_entra_id';
+	}
+
+	private createAzureTokenService(): AzureTokenService {
+		const { postgresdb } = this.config;
+		return new AzureTokenService({
+			tenantId: postgresdb.azureTenantId,
+			clientId: postgresdb.azureClientId,
+			clientSecret: postgresdb.azureClientSecret,
+		});
+	}
+
+	async getPostgresOverrides() {
+		const dbConfig = this.config.postgresdb;
+		const baseOverrides = {
+			database: dbConfig.database,
+			host: dbConfig.host,
+			port: dbConfig.port,
+			username: dbConfig.user,
+		};
+
+		if (this.isAzureAuthEnabled()) {
+			const azureTokenService = this.createAzureTokenService();
+			const token = await azureTokenService.getToken();
+			return {
+				...baseOverrides,
+				password: token,
+			};
+		}
+
+		return {
+			...baseOverrides,
 			password: dbConfig.password,
 		};
 	}
