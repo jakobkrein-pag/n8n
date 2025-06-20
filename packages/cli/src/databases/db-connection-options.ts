@@ -76,13 +76,13 @@ export class DbConnectionOptions {
 		};
 	}
 
-	getOptions(): DataSourceOptions {
+	async getOptions(): Promise<DataSourceOptions> {
 		const { type: dbType } = this.config;
 		switch (dbType) {
 			case 'sqlite':
 				return this.getSqliteConnectionOptions();
 			case 'postgresdb':
-				return this.getPostgresConnectionOptions();
+				return await this.getPostgresConnectionOptions();
 			case 'mariadb':
 			case 'mysqldb':
 				return this.getMysqlConnectionOptions(dbType);
@@ -144,7 +144,7 @@ export class DbConnectionOptions {
 		}
 	}
 
-	private getPostgresConnectionOptions(): PostgresConnectionOptions {
+	private async getPostgresConnectionOptions(): Promise<PostgresConnectionOptions> {
 		const { postgresdb: postgresConfig } = this.config;
 		const {
 			ssl: { ca: sslCa, cert: sslCert, key: sslKey, rejectUnauthorized: sslRejectUnauthorized },
@@ -163,7 +163,7 @@ export class DbConnectionOptions {
 		return {
 			type: 'postgres',
 			...this.getCommonOptions(),
-			...this.getOverrides('postgresdb'),
+			...(await this.getPostgresOverrides()),
 			schema: postgresConfig.schema,
 			poolSize: postgresConfig.poolSize,
 			migrations: postgresMigrations,

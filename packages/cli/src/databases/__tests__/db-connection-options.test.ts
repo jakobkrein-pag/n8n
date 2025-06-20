@@ -40,11 +40,11 @@ describe('DbConnectionOptions', () => {
 	};
 
 	describe('getOptions', () => {
-		it('should throw an error for unsupported database types', () => {
+		it('should throw an error for unsupported database types', async () => {
 			// @ts-expect-error invalid type
 			dbConfig.type = 'unsupported';
 
-			expect(() => dbConnectionOptions.getOptions()).toThrow(
+			await expect(dbConnectionOptions.getOptions()).rejects.toThrow(
 				'Database type currently not supported',
 			);
 		});
@@ -60,8 +60,8 @@ describe('DbConnectionOptions', () => {
 				};
 			});
 
-			it('should return SQLite connection options when type is sqlite', () => {
-				const result = dbConnectionOptions.getOptions();
+			it('should return SQLite connection options when type is sqlite', async () => {
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toEqual({
 					type: 'sqlite',
@@ -72,10 +72,10 @@ describe('DbConnectionOptions', () => {
 				});
 			});
 
-			it('should return SQLite connection options with pooling when poolSize > 0', () => {
+			it('should return SQLite connection options with pooling when poolSize > 0', async () => {
 				dbConfig.sqlite.poolSize = 5;
 
-				const result = dbConnectionOptions.getOptions();
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toEqual({
 					type: 'sqlite-pooled',
@@ -118,8 +118,8 @@ describe('DbConnectionOptions', () => {
 				};
 			});
 
-			it('should return PostgreSQL connection options when type is postgresdb', () => {
-				const result = dbConnectionOptions.getOptions();
+			it('should return PostgreSQL connection options when type is postgresdb', async () => {
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toEqual({
 					type: 'postgres',
@@ -140,7 +140,7 @@ describe('DbConnectionOptions', () => {
 				});
 			});
 
-			it('should configure SSL options for PostgreSQL when SSL settings are provided', () => {
+			it('should configure SSL options for PostgreSQL when SSL settings are provided', async () => {
 				const ssl = {
 					ca: 'ca-content',
 					cert: 'cert-content',
@@ -149,7 +149,7 @@ describe('DbConnectionOptions', () => {
 				};
 				dbConfig.postgresdb.ssl = { enabled: true, ...ssl };
 
-				const result = dbConnectionOptions.getOptions();
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toMatchObject({ ssl });
 			});
@@ -191,10 +191,10 @@ describe('DbConnectionOptions', () => {
 				};
 			});
 
-			it('should return MySQL connection options when type is mysqldb', () => {
+			it('should return MySQL connection options when type is mysqldb', async () => {
 				dbConfig.type = 'mysqldb';
 
-				const result = dbConnectionOptions.getOptions();
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toEqual({
 					type: 'mysql',
@@ -209,10 +209,10 @@ describe('DbConnectionOptions', () => {
 				});
 			});
 
-			it('should return MariaDB connection options when type is mariadb', () => {
+			it('should return MariaDB connection options when type is mariadb', async () => {
 				dbConfig.type = 'mariadb';
 
-				const result = dbConnectionOptions.getOptions();
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result).toEqual({
 					type: 'mariadb',
@@ -234,20 +234,20 @@ describe('DbConnectionOptions', () => {
 				dbConfig.sqlite = mock<GlobalConfig['database']['sqlite']>({ database: 'test.sqlite' });
 			});
 
-			it('should not configure logging by default', () => {
-				const result = dbConnectionOptions.getOptions();
+			it('should not configure logging by default', async () => {
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result.logging).toBe(false);
 			});
 
-			it('should configure logging when it is enabled', () => {
+			it('should configure logging when it is enabled', async () => {
 				dbConfig.logging = {
 					enabled: true,
 					options: 'all',
 					maxQueryExecutionTime: 1000,
 				};
 
-				const result = dbConnectionOptions.getOptions();
+				const result = await dbConnectionOptions.getOptions();
 
 				expect(result.logging).toBe('all');
 				expect(result.maxQueryExecutionTime).toBe(1000);
