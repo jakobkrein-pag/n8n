@@ -5,6 +5,9 @@ import { Config, Env, Nested } from '../decorators';
 const dbLoggingOptionsSchema = z.enum(['query', 'error', 'schema', 'warn', 'info', 'log', 'all']);
 type DbLoggingOptions = z.infer<typeof dbLoggingOptionsSchema>;
 
+const postgresAuthTypeSchema = z.enum(['password', 'azure_entra_id']);
+type PostgresAuthType = z.infer<typeof postgresAuthTypeSchema>;
+
 @Config
 class LoggingConfig {
 	/** Whether database logging is enabled. */
@@ -87,6 +90,26 @@ class PostgresConfig {
 	/** Postgres idle connection timeout (ms) */
 	@Env('DB_POSTGRESDB_IDLE_CONNECTION_TIMEOUT')
 	idleTimeoutMs: number = 30_000;
+
+	/** Postgres authentication type */
+	@Env('DB_POSTGRESDB_AUTH_TYPE', postgresAuthTypeSchema)
+	authType: PostgresAuthType = 'password';
+
+	/** Azure tenant ID (for service principal authentication) */
+	@Env('DB_POSTGRESDB_AZURE_TENANT_ID')
+	azureTenantId: string = '';
+
+	/** Azure client ID (for user-assigned managed identity or service principal) */
+	@Env('DB_POSTGRESDB_AZURE_CLIENT_ID')
+	azureClientId: string = '';
+
+	/** Azure client secret (for service principal authentication) */
+	@Env('DB_POSTGRESDB_AZURE_CLIENT_SECRET')
+	azureClientSecret: string = '';
+
+	/** Token refresh margin in milliseconds (default: 5 minutes) */
+	@Env('DB_POSTGRESDB_AZURE_TOKEN_REFRESH_MARGIN')
+	azureTokenRefreshMargin: number = 300_000;
 
 	@Nested
 	ssl: PostgresSSLConfig;

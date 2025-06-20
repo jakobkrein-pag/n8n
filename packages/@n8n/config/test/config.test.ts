@@ -69,6 +69,11 @@ describe('GlobalConfig', () => {
 				port: 5432,
 				schema: 'public',
 				connectionTimeoutMs: 20_000,
+				authType: 'password',
+				azureTenantId: '',
+				azureClientId: '',
+				azureClientSecret: '',
+				azureTokenRefreshMargin: 300_000,
 				ssl: {
 					ca: '',
 					cert: '',
