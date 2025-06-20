@@ -2,11 +2,14 @@ import { inTest } from '@n8n/backend-common';
 import { DatabaseConfig } from '@n8n/config';
 import type { Migration } from '@n8n/db';
 import { wrapMigration } from '@n8n/db';
-import { Memoized } from '@n8n/decorators';
 import { Container, Service } from '@n8n/di';
 import { DataSource } from '@n8n/typeorm';
 import { ErrorReporter } from 'n8n-core';
-import { DbConnectionTimeoutError, ensureError } from 'n8n-workflow';
+import {
+	DbConnectionTimeoutError,
+	DbConnectionNotInitializedError,
+	ensureError,
+} from 'n8n-workflow';
 
 import { Time } from '@/constants';
 
@@ -19,7 +22,7 @@ type ConnectionState = {
 
 @Service()
 export class DbConnection {
-	private dataSource: DataSource;
+	private dataSource?: DataSource;
 
 	private pingTimer: NodeJS.Timeout | undefined;
 
@@ -33,29 +36,31 @@ export class DbConnection {
 		private readonly connectionOptions: DbConnectionOptions,
 		private readonly databaseConfig: DatabaseConfig,
 	) {
-		this.dataSource = new DataSource(this.options);
-		Container.set(DataSource, this.dataSource);
-	}
-
-	@Memoized
-	get options() {
-		return this.connectionOptions.getOptions();
+		// DataSource creation moved to init() method for async options support
 	}
 
 	async init(): Promise<void> {
-		const { connectionState, options } = this;
+		const { connectionState } = this;
 		if (connectionState.connected) return;
+
+		// Create DataSource if not already created
+		if (!this.dataSource) {
+			const options = await this.connectionOptions.getOptions();
+			this.dataSource = new DataSource(options);
+			Container.set(DataSource, this.dataSource);
+		}
+
 		try {
 			await this.dataSource.initialize();
 		} catch (e) {
 			let error = ensureError(e);
 			if (
-				options.type === 'postgres' &&
+				this.dataSource.options.type === 'postgres' &&
 				error.message === 'Connection terminated due to connection timeout'
 			) {
 				error = new DbConnectionTimeoutError({
 					cause: error,
-					configuredTimeoutInMs: options.connectTimeoutMS!,
+					configuredTimeoutInMs: this.dataSource.options.connectTimeoutMS!,
 				});
 			}
 			throw error;
@@ -67,6 +72,9 @@ export class DbConnection {
 
 	async migrate() {
 		const { dataSource, connectionState } = this;
+		if (!dataSource) {
+			throw new DbConnectionNotInitializedError();
+		}
 		(dataSource.options.migrations as Migration[]).forEach(wrapMigration);
 		await dataSource.runMigrations({ transaction: 'each' });
 		connectionState.migrated = true;
@@ -78,7 +86,7 @@ export class DbConnection {
 			this.pingTimer = undefined;
 		}
 
-		if (this.dataSource.isInitialized) {
+		if (this.dataSource?.isInitialized) {
 			await this.dataSource.destroy();
 			this.connectionState.connected = false;
 		}
@@ -93,7 +101,7 @@ export class DbConnection {
 	}
 
 	private async ping() {
-		if (!this.dataSource.isInitialized) return;
+		if (!this.dataSource?.isInitialized) return;
 		try {
 			await this.dataSource.query('SELECT 1');
 			this.connectionState.connected = true;

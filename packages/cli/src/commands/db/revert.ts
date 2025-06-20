@@ -80,7 +80,7 @@ export class DbRevertMigrationCommand extends Command {
 
 	async run() {
 		const connectionOptions: ConnectionOptions = {
-			...Container.get(DbConnectionOptions).getOptions(),
+			...(await Container.get(DbConnectionOptions).getOptions()),
 			subscribers: [],
 			synchronize: false,
 			migrationsRun: false,
