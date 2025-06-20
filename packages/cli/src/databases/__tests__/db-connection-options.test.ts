@@ -102,6 +102,11 @@ describe('DbConnectionOptions', () => {
 					schema: 'public',
 					poolSize: 2,
 					connectionTimeoutMs: 20000,
+					authType: 'password',
+					azureTenantId: '',
+					azureClientId: '',
+					azureClientSecret: '',
+					azureTokenRefreshMargin: 300000,
 					ssl: {
 						enabled: false,
 						ca: '',
