@@ -17,8 +17,6 @@ import { UserError } from 'n8n-workflow';
 import path from 'path';
 import type { TlsOptions } from 'tls';
 
-import { ModuleRegistry } from '@/modules/module-registry';
-
 import { AzureTokenService } from './azure-token.service';
 
 @Service()
