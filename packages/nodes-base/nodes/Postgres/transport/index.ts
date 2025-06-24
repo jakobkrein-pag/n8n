@@ -27,11 +27,17 @@ const getPostgresConfig = (
 		host: credentials.host,
 		port: credentials.port,
 		database: credentials.database,
-		user: credentials.user,
-		password: credentials.password,
 		keepAlive: true,
 		max: credentials.maxConnections,
 	};
+
+	// Set authentication based on type
+	if (credentials.authenticationType === 'password') {
+		dbConfig.user = credentials.user;
+		dbConfig.password = credentials.password;
+	}
+	// For Azure managed identity, authentication will be handled via connection strings or tokens
+	// This will be implemented in the next iteration
 
 	if (options.connectionTimeout) {
 		dbConfig.connectionTimeoutMillis = options.connectionTimeout * 1000;

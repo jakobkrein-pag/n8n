@@ -53,17 +53,30 @@ export type PostgresNodeOptions = {
 };
 
 export type PostgresNodeCredentials = {
+	authenticationType: 'password' | 'azure_managed_identity';
 	host: string;
 	port: number;
 	database: string;
-	user: string;
-	password: string;
 	maxConnections: number;
 	allowUnauthorizedCerts?: boolean;
 	ssl?: 'disable' | 'allow' | 'require' | 'verify' | 'verify-full';
 } & (
-	| { sshTunnel: false }
-	| ({
-			sshTunnel: true;
-	  } & SSHCredentials)
-);
+	| {
+			authenticationType: 'password';
+			user: string;
+			password: string;
+	  }
+	| {
+			authenticationType: 'azure_managed_identity';
+			azureTenantId?: string;
+			azureClientId?: string;
+			azureClientSecret?: string;
+			tokenRefreshMargin?: number;
+	  }
+) &
+	(
+		| { sshTunnel: false }
+		| ({
+				sshTunnel: true;
+		  } & SSHCredentials)
+	);
