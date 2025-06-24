@@ -18,8 +18,9 @@ import type {
 	PostgresNodeCredentials,
 	PostgresNodeOptions,
 } from '../v2/helpers/interfaces';
+import { AzurePostgresAuth } from '../v2/helpers/azure-auth';
 
-const getPostgresConfig = (
+const getPostgresConfig = async (
 	credentials: PostgresNodeCredentials,
 	options: PostgresNodeOptions = {},
 ) => {
@@ -35,9 +36,20 @@ const getPostgresConfig = (
 	if (credentials.authenticationType === 'password') {
 		dbConfig.user = credentials.user;
 		dbConfig.password = credentials.password;
+	} else if (credentials.authenticationType === 'azure_managed_identity') {
+		// For Azure authentication, use access token as password
+		const azureAuth = new AzurePostgresAuth({
+			tenantId: credentials.azureTenantId,
+			clientId: credentials.azureClientId,
+			clientSecret: credentials.azureClientSecret,
+			tokenRefreshMargin: credentials.tokenRefreshMargin,
+		});
+
+		const accessToken = await azureAuth.getToken();
+		// Azure PostgreSQL authentication uses the token as password with a special user format
+		dbConfig.user = `${credentials.azureClientId || credentials.azureTenantId || 'default'}@${credentials.host}`;
+		dbConfig.password = accessToken;
 	}
-	// For Azure managed identity, authentication will be handled via connection strings or tokens
-	// This will be implemented in the next iteration
 
 	if (options.connectionTimeout) {
 		dbConfig.connectionTimeoutMillis = options.connectionTimeout * 1000;
@@ -121,7 +133,7 @@ export async function configurePostgres(
 			});
 		}
 
-		const dbConfig = getPostgresConfig(credentials, options);
+		const dbConfig = await getPostgresConfig(credentials, options);
 
 		if (!credentials.sshTunnel) {
 			const db = pgp(dbConfig);
